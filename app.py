@@ -178,8 +178,8 @@ class WearPredictionGNN(nn.Module):
 
 
 def generate_samples(num_samples, n_nodes_range, thickness_range, youngs_range,
-                     density_range, roller_paths_range, noise_level):
-    np.random.seed(42)
+                     density_range, roller_paths_range, noise_level, seed=42):
+    np.random.seed(seed)
     graphs = []
     dataset = MeshGraphDataset()
 
@@ -216,22 +216,28 @@ def train_model(graphs, hidden_channels, num_conv_layers, dropout, num_epochs, l
                 progress_bar, status_text):
     device = torch.device("cpu")
 
+    # Require enough samples for a meaningful train/val/test split
+    MIN_SAMPLES = 6
+    if len(graphs) < MIN_SAMPLES:
+        status_text.text(f"⚠️  Need at least {MIN_SAMPLES} samples for a train/val/test split. "
+                         "Increase 'Number of mesh samples' in the sidebar.")
+        return None, None, None, None, None
+
     # Split
     n = len(graphs)
     idx = list(range(n))
     np.random.shuffle(idx)
-    t_end = int(0.7 * n)
-    v_end = int(0.85 * n)
+    t_end = max(1, int(0.7 * n))
+    v_end = max(t_end + 1, int(0.85 * n))
+    # Ensure test set has at least one sample
+    if v_end >= n:
+        v_end = n - 1
+    if t_end >= v_end:
+        t_end = v_end - 1
+
     train_loader = DataLoader([graphs[i] for i in idx[:t_end]], batch_size=batch_size, shuffle=True)
     val_loader = DataLoader([graphs[i] for i in idx[t_end:v_end]], batch_size=batch_size)
     test_loader = DataLoader([graphs[i] for i in idx[v_end:]], batch_size=batch_size)
-
-    # Ensure there's at least one sample per split
-    if len(train_loader.dataset) == 0 or len(val_loader.dataset) == 0 or len(test_loader.dataset) == 0:
-        # Fall back: use all data for all splits when very few samples
-        train_loader = DataLoader(graphs, batch_size=batch_size, shuffle=True)
-        val_loader = DataLoader(graphs, batch_size=batch_size)
-        test_loader = DataLoader(graphs, batch_size=batch_size)
 
     sample = next(iter(train_loader))
     node_features = sample.x.size(1)
@@ -427,6 +433,7 @@ with st.sidebar:
     num_epochs = st.slider("Epochs", 5, 100, 30, step=5)
     lr = st.select_slider("Learning rate", options=[0.0001, 0.0005, 0.001, 0.005, 0.01], value=0.001)
     batch_size = st.selectbox("Batch size", [4, 8, 16, 32], index=1)
+    seed = st.number_input("Random seed", min_value=0, max_value=9999, value=42, step=1)
 
     run_button = st.button("▶ Run Demo", type="primary", use_container_width=True)
 
@@ -448,6 +455,7 @@ if run_button:
         density_range=(density_min, density_max),
         roller_paths_range=(roller_min, roller_max + 1),
         noise_level=noise_level,
+        seed=int(seed),
     )
     progress_bar.progress(0.05)
 
@@ -469,7 +477,7 @@ if run_button:
 
     # 2. Train model
     status_text.text("Training model…")
-    model, history, test_metrics, test_loader, device = train_model(
+    result = train_model(
         graphs=graphs,
         hidden_channels=hidden_channels,
         num_conv_layers=num_layers,
@@ -480,6 +488,12 @@ if run_button:
         progress_bar=progress_bar,
         status_text=status_text,
     )
+
+    if result[0] is None:
+        st.error("Not enough samples for a train/val/test split. Please increase 'Number of mesh samples'.")
+        st.stop()
+
+    model, history, test_metrics, test_loader, device = result
 
     # 3. Show metrics
     progress_bar.progress(1.0)
