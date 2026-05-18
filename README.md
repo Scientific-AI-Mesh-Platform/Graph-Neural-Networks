@@ -1,5 +1,24 @@
 # Mesh Graph Neural Network for Material Wear Prediction
 
+## Live Demo
+
+Run the interactive Streamlit demo to explore the model in your browser:
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Launch the demo
+streamlit run app.py
+```
+
+The demo lets you:
+- **Configure** mesh size, material properties, noise level, and model hyper-parameters from the sidebar
+- **Train** a fresh GNN in seconds and watch the loss curves live
+- **Visualise** actual vs predicted wear maps and an actual-vs-predicted scatter plot
+
+---
+
 ## Overview
 
 This project implements a Graph Neural Network (GNN) framework for predicting wear patterns on structural mesh components. By representing the mesh as a graph structure, the model learns to predict node-level wear based on geometric features, material properties, and loading conditions.
