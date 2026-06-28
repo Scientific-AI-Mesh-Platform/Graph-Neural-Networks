@@ -1,8 +1,14 @@
+import logging
+from typing import Dict, Any, List, Optional
 import matplotlib.pyplot as plt
-import numpy as np
 import torch
+import numpy as np
 
-def plot_training_history(history):
+logger = logging.getLogger(__name__)
+
+
+def plot_training_history(history: Dict[str, List[float]]) -> "plt.Figure":
+    logger.info("Plotting training history")
     fig, ax = plt.subplots(figsize=(7, 4))
     ax.plot(history["train_loss"], label="Train Loss", linewidth=2)
     ax.plot(history["val_loss"], label="Val Loss", linewidth=2, linestyle="--")
@@ -14,19 +20,25 @@ def plot_training_history(history):
     plt.tight_layout()
     return fig
 
+
 def plot_mesh_sample(graph, title="Sample Mesh (coloured by wear)"):
     """2-D scatter of node positions coloured by wear values."""
     node_pos = graph.x[:, :2].numpy()
-    wear = graph.y.numpy().flatten() if graph.y is not None else np.zeros(graph.num_nodes)
+    wear = (
+        graph.y.numpy().flatten() if graph.y is not None else np.zeros(graph.num_nodes)
+    )
 
     fig, ax = plt.subplots(figsize=(6, 5))
-    sc = ax.scatter(node_pos[:, 0], node_pos[:, 1], c=wear, cmap="viridis", s=40, alpha=0.85)
+    sc = ax.scatter(
+        node_pos[:, 0], node_pos[:, 1], c=wear, cmap="viridis", s=40, alpha=0.85
+    )
     plt.colorbar(sc, ax=ax, label="Wear")
     ax.set_title(title)
     ax.set_xlabel("X (normalised)")
     ax.set_ylabel("Y (normalised)")
     plt.tight_layout()
     return fig
+
 
 def plot_predictions(model, loader, device, max_nodes=500):
     """Actual vs Predicted scatter + error map on the first batch."""
@@ -47,11 +59,15 @@ def plot_predictions(model, loader, device, max_nodes=500):
 
     fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-    sc0 = axes[0].scatter(node_pos[:, 0], node_pos[:, 1], c=actual, cmap="viridis", s=35)
+    sc0 = axes[0].scatter(
+        node_pos[:, 0], node_pos[:, 1], c=actual, cmap="viridis", s=35
+    )
     plt.colorbar(sc0, ax=axes[0], label="Wear")
     axes[0].set_title("Actual Wear")
 
-    sc1 = axes[1].scatter(node_pos[:, 0], node_pos[:, 1], c=predicted, cmap="viridis", s=35)
+    sc1 = axes[1].scatter(
+        node_pos[:, 0], node_pos[:, 1], c=predicted, cmap="viridis", s=35
+    )
     plt.colorbar(sc1, ax=axes[1], label="Wear")
     axes[1].set_title("Predicted Wear")
 
@@ -66,7 +82,11 @@ def plot_predictions(model, loader, device, max_nodes=500):
     plt.tight_layout()
     return fig
 
-def plot_actual_vs_predicted(model, loader, device):
+
+def plot_actual_vs_predicted(
+    model: torch.nn.Module, loader: Any, device: torch.device
+) -> "plt.Figure":
+    logger.info("Plotting actual vs predicted")
     """Scatter plot of actual vs predicted values with identity line."""
     model.eval()
     all_actual, all_pred = [], []

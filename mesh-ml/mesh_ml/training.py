@@ -1,9 +1,12 @@
 import torch
+import logging
+logger = logging.getLogger(__name__)
 import torch.nn.functional as F
 import copy
 from typing import Dict, Any, Tuple
 
-def train_epoch(model, train_loader, optimizer, device, physics_weight=0.1):
+def train_epoch(model: torch.nn.Module, train_loader: 'torch_geometric.loader.DataLoader', optimizer: torch.optim.Optimizer, device: torch.device, physics_weight: float = 0.1) -> float:
+    logger.debug('Starting train epoch')
     model.train()
     total_loss = 0
 
@@ -29,7 +32,8 @@ def train_epoch(model, train_loader, optimizer, device, physics_weight=0.1):
 
     return total_loss / len(train_loader.dataset)
 
-def evaluate(model, loader, device) -> Tuple[float, float, float]:
+def evaluate(model: torch.nn.Module, loader: 'torch_geometric.loader.DataLoader', device: torch.device) -> Tuple[float, float, float]:
+    logger.debug('Evaluating model')
     model.eval()
     mse_sum = 0
     mae_sum = 0
@@ -54,7 +58,8 @@ def evaluate(model, loader, device) -> Tuple[float, float, float]:
 
     return mse_avg, mae_avg, rmse_avg
 
-def train_model(model, train_loader, val_loader, device, num_epochs=100, lr=0.001, patience=15) -> Dict[str, Any]:
+def train_model(model: torch.nn.Module, train_loader: 'torch_geometric.loader.DataLoader', val_loader: 'torch_geometric.loader.DataLoader', device: torch.device, num_epochs: int = 100, lr: float = 0.001, patience: int = 15) -> Dict[str, Any]:
+    logger.info(f'Starting training for {num_epochs} epochs')
     """Train the model with early stopping."""
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)

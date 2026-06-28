@@ -3,26 +3,37 @@ import torch.nn as nn
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import add_self_loops, degree
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 class CustomWearMessagePassingLayer(MessagePassing):
     """
     Custom Message Passing layer that incorporates physics-aware edge attributes
     into the message passing scheme.
     """
-    def __init__(self, in_channels, out_channels):
+
+    def __init__(self, in_channels: int, out_channels: int) -> None:
+        logger.debug(
+            f"Initializing CustomWearMessagePassingLayer with {in_channels}->{out_channels}"
+        )
         # We use 'add' aggregation for physical summation of forces/wear
-        super(CustomWearMessagePassingLayer, self).__init__(aggr='add')
+        super(CustomWearMessagePassingLayer, self).__init__(aggr="add")
 
         self.lin_node = nn.Linear(in_channels, out_channels)
-        self.lin_edge = nn.Linear(2, out_channels) # Edge features: distance, stiffness
+        self.lin_edge = nn.Linear(2, out_channels)  # Edge features: distance, stiffness
 
         # Combine node and edge features
         self.update_mlp = nn.Sequential(
             nn.Linear(2 * out_channels, out_channels),
             nn.ReLU(),
-            nn.Linear(out_channels, out_channels)
+            nn.Linear(out_channels, out_channels),
         )
 
-    def forward(self, x, edge_index, edge_attr):
+    def forward(
+        self, x: torch.Tensor, edge_index: torch.Tensor, edge_attr: torch.Tensor
+    ) -> torch.Tensor:
         # Add self-loops to the graph
         edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
 
@@ -37,13 +48,15 @@ class CustomWearMessagePassingLayer(MessagePassing):
         row, col = edge_index
         deg = degree(col, x.size(0), dtype=x.dtype)
         deg_inv_sqrt = deg.pow(-0.5)
-        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+        deg_inv_sqrt[deg_inv_sqrt == float("inf")] = 0
         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
 
         # Start message passing
         return self.propagate(edge_index, x=x, edge_attr=edge_attr, norm=norm)
 
-    def message(self, x_j, edge_attr, norm):
+    def message(
+        self, x_j: torch.Tensor, edge_attr: torch.Tensor, norm: torch.Tensor
+    ) -> torch.Tensor:
         # Process edge attributes
         edge_features = self.lin_edge(edge_attr)
 

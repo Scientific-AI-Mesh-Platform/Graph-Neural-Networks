@@ -3,6 +3,7 @@ import numpy as np
 from torch_geometric.data import Data
 from typing import List, Tuple
 
+
 def generate_samples(
     num_samples: int = 30,
     n_nodes_range: Tuple[int, int] = (30, 81),
@@ -11,7 +12,7 @@ def generate_samples(
     density_range: Tuple[float, float] = (2000.0, 8000.0),
     roller_paths_range: Tuple[int, int] = (1, 11),
     noise_level: float = 0.1,
-    seed: int = 42
+    seed: int = 42,
 ) -> List[Data]:
     """Generates synthetic mesh graph samples simulating material wear."""
     np.random.seed(seed)
@@ -82,7 +83,7 @@ def generate_samples(
         wear_true = base_wear * dist_factor
 
         # Add spatial non-linearity based on z-coordinate
-        wear_true *= (1.0 + 0.5 * np.sin(pos[:, 2] * np.pi))
+        wear_true *= 1.0 + 0.5 * np.sin(pos[:, 2] * np.pi)
 
         # Add noise
         noise = np.random.normal(0, noise_level * np.mean(wear_true), size=n_nodes)
@@ -91,7 +92,12 @@ def generate_samples(
         y_tensor = torch.tensor(wear, dtype=torch.float).view(-1, 1)
 
         # Construct PyTorch Geometric Data object
-        data = Data(x=x_tensor, edge_index=edge_index_tensor, edge_attr=edge_attr_tensor, y=y_tensor)
+        data = Data(
+            x=x_tensor,
+            edge_index=edge_index_tensor,
+            edge_attr=edge_attr_tensor,
+            y=y_tensor,
+        )
         graphs.append(data)
 
     return graphs
