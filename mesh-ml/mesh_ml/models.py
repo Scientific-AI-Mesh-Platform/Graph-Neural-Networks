@@ -1,15 +1,20 @@
 import torch
+from typing import Optional
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATConv, SAGEConv
 from .layers import CustomWearMessagePassingLayer
+
+import logging
+logger = logging.getLogger(__name__)
 
 class PhysicsInformedGNN(torch.nn.Module):
     """
     Graph Neural Network for predicting wear patterns with physics regularization.
     Combines custom physics-aware message passing with attention.
     """
-    def __init__(self, num_node_features, hidden_channels):
+    def __init__(self, num_node_features: int, hidden_channels: int) -> None:
+        logger.debug(f'Initializing PhysicsInformedGNN with features {num_node_features} and hidden {hidden_channels}')
         super(PhysicsInformedGNN, self).__init__()
 
         # First custom physics-informed message passing layer
@@ -40,7 +45,7 @@ class PhysicsInformedGNN(torch.nn.Module):
         self.thickness_weight = nn.Parameter(torch.tensor(1.0))
         self.distance_weight = nn.Parameter(torch.tensor(1.0))
 
-    def forward(self, x, edge_index, edge_attr, batch=None):
+    def forward(self, x: torch.Tensor, edge_index: torch.Tensor, edge_attr: torch.Tensor, batch: torch.Tensor = None) -> torch.Tensor:
         # First layer
         h = self.conv1(x, edge_index, edge_attr)
         h = self.bn1(h)
@@ -61,7 +66,7 @@ class PhysicsInformedGNN(torch.nn.Module):
 
         return wear
 
-    def physics_regularization(self, data, predicted_wear):
+    def physics_regularization(self, data: 'torch_geometric.data.Data', predicted_wear: torch.Tensor) -> torch.Tensor:
         """
         Add physics-based regularization to the loss function
         """

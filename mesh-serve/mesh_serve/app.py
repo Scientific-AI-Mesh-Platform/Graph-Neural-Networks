@@ -15,16 +15,14 @@ from mesh_vis.plotting import (
     plot_training_history,
     plot_mesh_sample,
     plot_predictions,
-    plot_actual_vs_predicted
+    plot_actual_vs_predicted,
 )
 
 st.title("⚙️ GNN Wear Prediction — Live Demo (Modular Architecture)")
-st.markdown(
-    """
+st.markdown("""
     This demo uses a **Physics-Informed Graph Neural Network** to predict material wear
     at every node in a structural mesh. This version runs on the newly re-architected modular ecosystem.
-    """
-)
+    """)
 
 with st.sidebar:
     st.header("🔧 Configuration")
@@ -38,7 +36,9 @@ with st.sidebar:
 
     st.subheader("Training")
     num_epochs = st.slider("Epochs", 5, 100, 30, step=5)
-    lr = st.select_slider("Learning rate", options=[0.0001, 0.0005, 0.001, 0.005, 0.01], value=0.001)
+    lr = st.select_slider(
+        "Learning rate", options=[0.0001, 0.0005, 0.001, 0.005, 0.01], value=0.001
+    )
     batch_size = st.selectbox("Batch size", [4, 8, 16, 32], index=1)
 
     run_button = st.button("▶ Run Demo", type="primary", use_container_width=True)
@@ -47,7 +47,9 @@ metrics_placeholder = st.empty()
 progress_bar = st.progress(0)
 status_text = st.empty()
 
-tab_data, tab_train, tab_predict = st.tabs(["📊 Sample Data", "📈 Training", "🔍 Predictions"])
+tab_data, tab_train, tab_predict = st.tabs(
+    ["📊 Sample Data", "📈 Training", "🔍 Predictions"]
+)
 
 if run_button:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -75,8 +77,8 @@ if run_button:
     test_size = len(graphs) - train_size - val_size
 
     train_graphs = graphs[:train_size]
-    val_graphs = graphs[train_size:train_size+val_size]
-    test_graphs = graphs[train_size+val_size:]
+    val_graphs = graphs[train_size : train_size + val_size]
+    test_graphs = graphs[train_size + val_size :]
 
     train_loader = DataLoader(train_graphs, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_graphs, batch_size=batch_size, shuffle=False)
@@ -87,7 +89,9 @@ if run_button:
     num_node_features = train_graphs[0].x.size(1)
     model = PhysicsInformedGNN(num_node_features, hidden_channels).to(device)
 
-    history = train_model(model, train_loader, val_loader, device, num_epochs=num_epochs, lr=lr)
+    history = train_model(
+        model, train_loader, val_loader, device, num_epochs=num_epochs, lr=lr
+    )
     progress_bar.progress(0.8)
 
     status_text.text("Evaluating…")
